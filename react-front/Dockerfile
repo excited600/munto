@@ -4,7 +4,6 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install
 COPY . .
-ENV REACT_APP_API_HOST=http://localhost:3000
 RUN npm run build
 
 # 2단계: nginx를 이용한 정적 파일 서빙
