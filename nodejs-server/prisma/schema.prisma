@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Participant {
+  social_gathering_id Int
+  user_uuid           String @db.Uuid
+
+  @@id([social_gathering_id, user_uuid])
+}
+
+model SocialGathering {
+  id             Int      @id @default(autoincrement())
+  host_uuid      String   @db.Uuid
+  name           String
+  location       String
+  thumbnail_url  String
+  price          Int 
+  start_datetime DateTime
+  end_datetime   DateTime
+  created_at     DateTime @default(now())
+  created_by     String   @db.Uuid
+  updated_at     DateTime @updatedAt
+  updated_by     String   @db.Uuid
+
+  @@index([start_datetime])
+}
+
+model User {
+  uuid                String    @id @default(uuid())
+  email               String    @unique
+  name                String
+  temperature         Float     @default(36.5)
+  profile_picture_url String?
+  introduction        String?
+  is_host            Boolean   @default(false)
+  is_authenticated   Boolean   @default(false)
+  password           String
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+
+  @@index([name, created_at])
+}
