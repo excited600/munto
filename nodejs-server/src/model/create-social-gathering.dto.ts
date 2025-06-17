@@ -1,4 +1,4 @@
-import { IsString, IsUUID, IsDateString } from 'class-validator';
+import { IsString, IsDateString } from 'class-validator';
 
 export class CreateSocialGatheringDto {
   @IsString()

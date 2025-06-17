@@ -1,7 +1,8 @@
+import { uploadImageToS3 } from '@/service/s3.service';
+import { PrismaService } from '@/repository/prisma.service';
+import { CreateUserDto } from '@/model/create-user.dto';
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { uploadImageToS3 } from '../common/s3.service';
+
 import * as bcrypt from 'bcrypt';
 
 @Injectable()

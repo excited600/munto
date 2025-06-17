@@ -1,12 +1,11 @@
 import { Controller, Get, Post, Body, Param, Query, ParseIntPipe, UseInterceptors, UploadedFile, UseGuards, Request } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { SocialGatheringsService } from './social-gatherings.service';
-import { CreateSocialGatheringDto } from './dto/create-social-gathering.dto';
-import { ParticipateSocialGatheringDto } from './dto/participate-social-gathering.dto';
-import { ParticipantInfo } from './interfaces/participant-info.interface';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { Request as ExpressRequest } from 'express';
-import { User } from 'src/decorators/user-decorator';
+import { User } from '@/controller/user-decorator';
+import { ParticipantInfo } from '@/model/participant-info.interface';
+import { ParticipateSocialGatheringDto } from '@/model/participate-social-gathering.dto';
+import { CreateSocialGatheringDto } from '@/model/create-social-gathering.dto';
+import { SocialGatheringsService } from '@/service/social-gatherings.service';
+import { JwtAuthGuard } from '@/service/jwt-auth.guard';
 
 @Controller('social-gatherings')
 export class SocialGatheringsController {

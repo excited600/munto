@@ -1,13 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateSocialGatheringDto } from './dto/create-social-gathering.dto';
-import { ParticipateSocialGatheringDto } from './dto/participate-social-gathering.dto';
 import { DateTime } from 'luxon';
 import { SocialGathering } from '@prisma/client';
 import { Prisma } from '@prisma/client';
-import { uploadImageToS3 } from '../common/s3.service';
-import { IamportService } from './iamport.service';
-import { ParticipantInfo } from './interfaces/participant-info.interface';
+import { PrismaService } from '@/repository/prisma.service';
+import { IamportService } from '@/service/iamport.service';
+import { CreateSocialGatheringDto } from '@/model/create-social-gathering.dto';
+import { ParticipateSocialGatheringDto } from '@/model/participate-social-gathering.dto';
+import { ParticipantInfo } from '@/model/participant-info.interface';
+import { uploadImageToS3 } from './s3.service';
 
 @Injectable()
 export class SocialGatheringsService {
