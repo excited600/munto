@@ -9,7 +9,7 @@ CREATE TABLE "User" (
   profile_picture_url TEXT,
   introduction TEXT,
   is_host BOOLEAN NOT NULL DEFAULT FALSE,
-  is_authenticated BOOLEAN NOT NULL DEFAULT FALSE,
+  is_realname_authenticated BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP(3) NOT NULL DEFAULT now(),
   updated_at TIMESTAMP(3) NOT NULL DEFAULT now()
 );

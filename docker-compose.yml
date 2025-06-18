@@ -17,7 +17,16 @@ services:
       retries: 5
     networks:
       - munto-network
-
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: always
+    networks:
+      - munto-network
   server:
     build:
       context: ./nodejs-server
@@ -34,6 +43,7 @@ services:
       IAMPORT_REST_API_SECRET: ${IAMPORT_REST_API_SECRET}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      REDIS_HOST: ${REDIS_HOST}
     depends_on:
       postgres:
         condition: service_healthy
@@ -51,6 +61,7 @@ services:
       - server
     networks:
       - munto-network
+  
 
 networks:
   munto-network:
@@ -58,3 +69,4 @@ networks:
 
 volumes:
   postgres_data: 
+  redis-data:

@@ -3,8 +3,12 @@ import { RepositoryModule } from './repository.module';
 import { ServiceModule } from './service.module';
 
 @Module({
-  imports: [RepositoryModule, ServiceModule],
+  imports: [
+    RepositoryModule,
+    ServiceModule
+  ],
   controllers: [],
   providers: [],
+  exports: [],
 })
-export class AppModule {}
+export class AppModule { }

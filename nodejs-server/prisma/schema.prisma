@@ -39,7 +39,7 @@ model User {
   profile_picture_url String?
   introduction        String?
   is_host            Boolean   @default(false)
-  is_authenticated   Boolean   @default(false)
+  is_realname_authenticated   Boolean   @default(false)
   password           String
   created_at         DateTime  @default(now())
   updated_at         DateTime  @updatedAt

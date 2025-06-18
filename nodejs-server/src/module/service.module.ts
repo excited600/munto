@@ -10,6 +10,7 @@ import { S3Service } from "@/service/s3.service";
 import { PassportModule } from "@nestjs/passport";
 import { JwtModule } from "@nestjs/jwt";
 import { PrismaService } from "@/repository/prisma.service";
+import { RedisCacheProvider } from "@/service/redis-cache.provider";
 
 
 @Module({
@@ -19,7 +20,7 @@ import { PrismaService } from "@/repository/prisma.service";
           signOptions: { expiresIn: process.env.JWT_EXPIRES_IN },
         }),],
     controllers: [SocialGatheringsController, UsersController],
-    providers: [PrismaService, SocialGatheringsService, IamportService, UserService, S3Service, JwtStrategy],
+    providers: [PrismaService, SocialGatheringsService, IamportService, UserService, S3Service, JwtStrategy, RedisCacheProvider],
     exports: [PrismaService, SocialGatheringsService, UserService]
   })
   export class ServiceModule {}

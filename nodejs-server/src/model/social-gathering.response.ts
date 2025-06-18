@@ -16,8 +16,11 @@ export class SocialGatheringResponse {
   updated_by: string;
 
   static from(socialGathering: SocialGathering): SocialGatheringResponse {
-    const toKST = (date: Date): string => {
-      const isoString = DateTime.fromJSDate(date)
+    
+    const toKST = (date: Date | string): string => {
+      const jsDate = typeof date === 'string' ? new Date(date) : date;
+
+      const isoString = DateTime.fromJSDate(jsDate)
         .setZone('Asia/Seoul')
         .toISO();
       
