@@ -1,8 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "./prisma.service";
 import { CreateSocialGatheringRequest } from "@/model/create-social-gathering.request";
-import { SocialGathering } from "@prisma/client";
-import { Prisma } from "generated/prisma";
+import { Prisma, SocialGathering } from "@prisma/client";
 
 @Injectable()
 export class SocialGatheringRepository {
