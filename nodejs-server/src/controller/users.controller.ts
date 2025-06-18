@@ -1,27 +1,33 @@
 import { JwtAuthGuard } from '@/service/jwt-auth.guard';
-import { CreateUserDto } from '@/model/create-user.dto';
-import { UsersService } from '@/service/users.service';
+import { CreateUserRequest } from '@/model/create-user.request';
+import { UserService } from '@/service/user.service';
 import { Controller, Get, Post, Body, Param, UseInterceptors, UploadedFile, UseGuards } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { LoginRequest } from '@/model/login.request';
 
 @Controller('users')
 export class UsersController {
   constructor(
-    private readonly usersService: UsersService,
+    private readonly userService: UserService,
   ) {}
 
-  @Post('/signup')
+  @Post('signup')
   @UseInterceptors(FileInterceptor('profile_picture'))
   async create(
-    @Body() createUserDto: CreateUserDto,
+    @Body() createUserDto: CreateUserRequest,
     @UploadedFile() profilePicture?: Express.Multer.File,
   ) {
-    return this.usersService.create(createUserDto, profilePicture);
+    return this.userService.create(createUserDto, profilePicture);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get(':uuid')
   findOne(@Param('uuid') uuid: string) {
-    return this.usersService.findOne(uuid);
+    return this.userService.findOne(uuid);
+  }
+
+  @Post('signin')
+  async login(@Body() loginDto: LoginRequest) {
+    return this.userService.login(loginDto);
   }
 } 

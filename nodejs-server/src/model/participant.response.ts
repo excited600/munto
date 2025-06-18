@@ -1,4 +1,4 @@
-export interface ParticipantInfo {
+export class ParticipantResponse {
   user_uuid: string;
   name: string;
   profile_picture_url: string | null;

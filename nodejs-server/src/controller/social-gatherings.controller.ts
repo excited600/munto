@@ -1,9 +1,9 @@
 import { Controller, Get, Post, Body, Param, Query, ParseIntPipe, UseInterceptors, UploadedFile, UseGuards, Request } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { User } from '@/controller/user-decorator';
-import { ParticipantInfo } from '@/model/participant-info.interface';
-import { ParticipateSocialGatheringDto } from '@/model/participate-social-gathering.dto';
-import { CreateSocialGatheringDto } from '@/model/create-social-gathering.dto';
+import { ParticipantResponse } from '@/model/participant.response';
+import { ParticipateSocialGatheringRequest } from '@/model/participate-social-gathering.request';
+import { CreateSocialGatheringRequest } from '@/model/create-social-gathering.request';
 import { SocialGatheringsService } from '@/service/social-gatherings.service';
 import { JwtAuthGuard } from '@/service/jwt-auth.guard';
 
@@ -16,7 +16,7 @@ export class SocialGatheringsController {
   @UseInterceptors(FileInterceptor('thumbnail'))
   async create(
     @User('email') sessionEmail: string,
-    @Body() createSocialGatheringDto: CreateSocialGatheringDto,
+    @Body() createSocialGatheringDto: CreateSocialGatheringRequest,
     @UploadedFile() thumbnail: Express.Multer.File,
   ) {
     return this.socialGatheringsService.create(sessionEmail, createSocialGatheringDto, thumbnail);
@@ -35,13 +35,13 @@ export class SocialGatheringsController {
   }
 
   @Get(':id/participants')
-  getParticipants(@Param('id', ParseIntPipe) id: number): Promise<ParticipantInfo[]> {
+  getParticipants(@Param('id', ParseIntPipe) id: number): Promise<ParticipantResponse[]> {
     return this.socialGatheringsService.getParticipants(id);
   }
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.socialGatheringsService.findOne(id);
+    return this.socialGatheringsService.getById(id);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -49,7 +49,7 @@ export class SocialGatheringsController {
   participate(
     @User('email') sessionEmail: string,
     @Param('id', ParseIntPipe) id: number,
-    @Body() participateSocialGatheringDto: ParticipateSocialGatheringDto
+    @Body() participateSocialGatheringDto: ParticipateSocialGatheringRequest
   ) {
     return this.socialGatheringsService.participate(id, sessionEmail, participateSocialGatheringDto);
   }

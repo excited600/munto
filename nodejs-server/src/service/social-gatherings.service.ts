@@ -1,164 +1,73 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { DateTime } from 'luxon';
-import { SocialGathering } from '@prisma/client';
-import { Prisma } from '@prisma/client';
-import { PrismaService } from '@/repository/prisma.service';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { IamportService } from '@/service/iamport.service';
-import { CreateSocialGatheringDto } from '@/model/create-social-gathering.dto';
-import { ParticipateSocialGatheringDto } from '@/model/participate-social-gathering.dto';
-import { ParticipantInfo } from '@/model/participant-info.interface';
-import { uploadImageToS3 } from './s3.service';
+import { CreateSocialGatheringRequest } from '@/model/create-social-gathering.request';
+import { ParticipateSocialGatheringRequest } from '@/model/participate-social-gathering.request';
+import { UserRepository } from '@/repository/user.repository';
+import { SocialGatheringRepository } from '@/repository/social-gathering.repository';
+import { ParticipantRepository } from '@/repository/participant.repository';
+import { SocialGatheringResponse } from '@/model/social-gathering.response';
+import { S3Service } from './s3.service';
 
 @Injectable()
 export class SocialGatheringsService {
   constructor(
-    private prisma: PrismaService,
-    private iamportService: IamportService
-  ) {}
+    private iamportService: IamportService,
+    private userRepository: UserRepository,
+    private socialGatheringRepository: SocialGatheringRepository,
+    private participantRepository: ParticipantRepository,
+    private s3Service: S3Service,
+  ) { }
 
-  async create(sessionEmail: string, createSocialGatheringDto: CreateSocialGatheringDto, thumbnail: Express.Multer.File) {
-    const sessionUser = await this.prisma.user.findUnique({
-      where: { email: sessionEmail },
-    });
-
-    if (!sessionUser) {
-      throw new BadRequestException('로그인된 사용자를 찾을 수 없습니다.');
-    }
-
-    // S3 업로드
-    const thumnail_url = await uploadImageToS3(thumbnail.buffer, thumbnail.mimetype, 'social-gatherings');
-    const socialGathering = await this.prisma.socialGathering.create({
-      data: {
-        host_uuid: sessionUser.uuid,
-        name: createSocialGatheringDto.name,
-        location: createSocialGatheringDto.location,
-        price: parseInt(createSocialGatheringDto.price, 10),
-        start_datetime: createSocialGatheringDto.start_datetime,
-        end_datetime: createSocialGatheringDto.end_datetime,
-        thumbnail_url: thumnail_url,
-        created_by: sessionUser.uuid,
-        updated_by: sessionUser.uuid,
-        created_at: new Date(),
-        updated_at: new Date()
-      }
-    });
-
-    // todo: 코드 중복.. 개선 필요
-    await this.prisma.participant.create({
-      data: {
-        social_gathering_id: socialGathering.id,
-        user_uuid: sessionUser.uuid
-      }
-    });
-
-    return this.formatSocialGathering(socialGathering);
+  async create(sessionEmail: string, createSocialGatheringDto: CreateSocialGatheringRequest, thumbnail: Express.Multer.File) {
+    const sessionUser = await this.userRepository.getByEmail(sessionEmail);
+    const thumnail_url = await this.s3Service.uploadImageToS3(thumbnail.buffer, thumbnail.mimetype, 'social-gatherings');
+    const socialGathering = await this.socialGatheringRepository.create(sessionUser.uuid, createSocialGatheringDto, thumnail_url, sessionUser.uuid, sessionUser.uuid);
+    await this.participantRepository.create(socialGathering.id, sessionUser.uuid);
+    return SocialGatheringResponse.from(socialGathering)
   }
 
-  async findAll() {
-    const socialGatherings = await this.prisma.socialGathering.findMany();
-    return socialGatherings.map(gathering => this.formatSocialGathering(gathering));
-  }
-
-  async findOne(id: number) {
-    const socialGathering = await this.prisma.socialGathering.findUnique({
-      where: { id }
-    });
-    return socialGathering ? this.formatSocialGathering(socialGathering) : null;
+  async getById(id: number) {
+    const socialGathering = await this.socialGatheringRepository.getById(id)
+    return SocialGatheringResponse.from(socialGathering)
   }
 
   async findLatest(count?: number) {
     if (count == undefined || count == null || isNaN(count) || count <= 0) {
-      count = 10;
+      count = DEFAULT_COUNT;
     }
 
-    const socialGatherings = await this.prisma.$queryRaw<SocialGathering[]>`
-      SELECT * FROM "SocialGathering"
-      ORDER BY "start_datetime" DESC
-      LIMIT ${count}
-    `;
+    const socialGatherings = await this.socialGatheringRepository.findLatestSocialGatherings(count)
 
-    return socialGatherings.map(gathering => this.formatSocialGathering(gathering));
+    return socialGatherings.map(gathering => SocialGatheringResponse.from(gathering));
   }
 
   async findWithCursor(cursor?: number) {
-    const limit = 50;
-    const socialGatherings = await this.prisma.$queryRaw<SocialGathering[]>`
-      SELECT * FROM "SocialGathering"
-      ${cursor ? Prisma.sql`WHERE id < ${cursor}` : Prisma.empty}
-      ORDER BY id DESC
-      LIMIT ${limit}
-    `;
-
-    return socialGatherings.map(gathering => this.formatSocialGathering(gathering));
-  }
-  
-  private formatSocialGathering(gathering: SocialGathering) {
-    return {
-      ...gathering,
-      start_datetime: DateTime.fromJSDate(gathering.start_datetime)
-        .setZone('Asia/Seoul')
-        .toISO(),
-      end_datetime: DateTime.fromJSDate(gathering.end_datetime)
-        .setZone('Asia/Seoul')
-        .toISO(),
-      created_at: DateTime.fromJSDate(gathering.created_at)
-        .setZone('Asia/Seoul')
-        .toISO(),
-      updated_at: DateTime.fromJSDate(gathering.updated_at)
-        .setZone('Asia/Seoul')
-        .toISO(),
-    };
+    const socialGatherings = await this.socialGatheringRepository.findLatestSocialGatheringsWithCursor(cursor)
+    return socialGatherings.map(gathering => SocialGatheringResponse.from(gathering));
   }
 
-  async participate(id: number, sessionEmail: string, participateDto: ParticipateSocialGatheringDto) {
-    const sessionUser = await this.prisma.user.findUnique({
-      where: { email: sessionEmail },
-    });
-
-    if (!sessionUser) {
-      throw new BadRequestException('로그인된 사용자를 찾을 수 없습니다.');
-    }
-
-    const socialGathering = await this.prisma.socialGathering.findUnique({
-      where: { id }
-    });
-
-    if (!socialGathering) {
-      throw new NotFoundException('Social gathering not found');
-    }
+  async participate(id: number, sessionEmail: string, participateDto: ParticipateSocialGatheringRequest) {
+    const socialGathering = await this.socialGatheringRepository.getById(id);
 
     const paymentResult = await this.iamportService.getPaymentResult(participateDto.imp_uid);
     if (paymentResult.status !== 'paid') {
-      throw new BadRequestException('Payment is not completed');
+      throw new BadRequestException('결제가 완료되지 않았습니다.');
     }
-
     if (paymentResult.amount !== socialGathering.price) {
-      throw new BadRequestException('Payment amount does not match');
+      throw new BadRequestException('결제 금액이 일치하지 않습니다.');
     }
 
-    await this.prisma.participant.create({
-      data: {
-        social_gathering_id: id,
-        user_uuid: sessionUser.uuid
-      }
-    });
+    const sessionUser = await this.userRepository.getByEmail(sessionEmail);
 
-    return { message: 'Successfully participated in the social gathering' };
+    await this.participantRepository.create(id, sessionUser.uuid);
+
+    return { message: '성공적으로 참가했습니다.' };
   }
 
   async getParticipants(socialGatheringId: number) {
-    const participants = await this.prisma.$queryRaw<ParticipantInfo[]>`
-      SELECT 
-        u.uuid::text as user_uuid,
-        u.name,
-        u.profile_picture_url,
-        u.temperature,
-        u.introduction
-      FROM "Participant" p
-      INNER JOIN "User" u ON p.user_uuid::text = u.uuid::text
-      WHERE p.social_gathering_id = ${socialGatheringId}
-    `;
-
-    return participants;
+    return this.participantRepository.findParticipantsBySocialGatheringId(socialGatheringId)
   }
-} 
+}
+
+
+const DEFAULT_COUNT = 10;

@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
-import { SocialGatheringsModule } from './social-gatherings.module';
-import { UsersModule } from './users.module';
-import { PrismaModule } from './prisma.module';
+import { RepositoryModule } from './repository.module';
+import { ServiceModule } from './service.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, SocialGatheringsModule],
+  imports: [RepositoryModule, ServiceModule],
   controllers: [],
   providers: [],
 })

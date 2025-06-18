@@ -1,6 +1,6 @@
 import { IsString, IsDateString } from 'class-validator';
 
-export class CreateSocialGatheringDto {
+export class CreateSocialGatheringRequest {
   @IsString()
   name: string;
 

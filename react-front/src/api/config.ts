@@ -4,7 +4,7 @@ export const API_HOST = process.env.REACT_APP_API_HOST || '';
 // API 엔드포인트
 export const API_ENDPOINTS = {
   AUTH: {
-    LOGIN: `${API_HOST}/api/auth/login`,
+    LOGIN: `${API_HOST}/api/users/signin`,
   },
   USERS: {
     SIGNUP: `${API_HOST}/api/users/signup`,
