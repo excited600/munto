@@ -4,7 +4,6 @@ import { SocialGatheringRepository } from '@/repository/social-gathering.reposit
 import { UserRepository } from '@/repository/user.repository';
 import { Global, Module } from '@nestjs/common';
 
-@Global()
 @Module({
   providers: [PrismaService, UserRepository, SocialGatheringRepository, ParticipantRepository],
   exports: [PrismaService, UserRepository, SocialGatheringRepository, ParticipantRepository],
