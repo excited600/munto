@@ -16,35 +16,32 @@ export class UserService {
     private s3Service: S3Service,
   ) { }
 
-  async create(createUserDto: CreateUserRequest, profilePicture?: Express.Multer.File) {
-    const { email, name, introduction, password } = createUserDto;
-    const isHost = createUserDto.is_host === 'true'
+  async create(createUserRequest: CreateUserRequest, profilePicture?: Express.Multer.File) {
+    const { email, name, password } = createUserRequest;
+    const introduction = createUserRequest.introduction ?? null;
+    const isHost = createUserRequest.is_host === 'true'
 
     const existingUser = await this.prisma.user.findUnique({
-      where: { email: createUserDto.email },
+      where: { email: createUserRequest.email },
     });
     if (existingUser) {
       throw new ConflictException('Email is already in use');
     }
 
-    let profile_picture_url: string | null = null;
+    let profilePictureUrl: string | null = null;
     if (profilePicture) {
-      profile_picture_url = await this.s3Service.uploadImageToS3(profilePicture.buffer, profilePicture.mimetype, 'users');
+      profilePictureUrl = await this.s3Service.uploadImageToS3(profilePicture.buffer, profilePicture.mimetype, 'users');
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    return this.prisma.user.create({
-      data: {
-        email,
-        name,
-        introduction,
-        is_host: isHost,
-        profile_picture_url,
-        password: hashedPassword,
-        created_at: new Date(),
-        updated_at: new Date()
-      },
+    return this.userRepository.create({
+      email,
+      name,
+      introduction,
+      isHost,
+      profile_picture_url: profilePictureUrl,
+      password: hashedPassword,
     });
   }
 

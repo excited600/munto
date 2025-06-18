@@ -7,6 +7,7 @@ import { SocialGatheringRepository } from '@/repository/social-gathering.reposit
 import { ParticipantRepository } from '@/repository/participant.repository';
 import { SocialGatheringResponse } from '@/model/social-gathering.response';
 import { S3Service } from './s3.service';
+import { PrismaService } from '@/repository/prisma.service';
 
 @Injectable()
 export class SocialGatheringsService {
@@ -15,15 +16,19 @@ export class SocialGatheringsService {
     private userRepository: UserRepository,
     private socialGatheringRepository: SocialGatheringRepository,
     private participantRepository: ParticipantRepository,
+    private prisma: PrismaService,
     private s3Service: S3Service,
   ) { }
 
   async create(sessionEmail: string, createSocialGatheringDto: CreateSocialGatheringRequest, thumbnail: Express.Multer.File) {
     const sessionUser = await this.userRepository.getByEmail(sessionEmail);
-    const thumnail_url = await this.s3Service.uploadImageToS3(thumbnail.buffer, thumbnail.mimetype, 'social-gatherings');
-    const socialGathering = await this.socialGatheringRepository.create(sessionUser.uuid, createSocialGatheringDto, thumnail_url, sessionUser.uuid, sessionUser.uuid);
-    await this.participantRepository.create(socialGathering.id, sessionUser.uuid);
-    return SocialGatheringResponse.from(socialGathering)
+    const thumnailUrl = await this.s3Service.uploadImageToS3(thumbnail.buffer, thumbnail.mimetype, 'social-gatherings');
+    return await this.prisma.$transaction(async (tx) => {
+      const socialGathering = await this.socialGatheringRepository.create(tx, sessionUser.uuid, createSocialGatheringDto, thumnailUrl, sessionUser.uuid, sessionUser.uuid);
+      await this.participantRepository.create(tx, socialGathering.id, sessionUser.uuid);
+      return SocialGatheringResponse.from(socialGathering)
+    });
+    
   }
 
   async getById(id: number) {
@@ -46,10 +51,10 @@ export class SocialGatheringsService {
     return socialGatherings.map(gathering => SocialGatheringResponse.from(gathering));
   }
 
-  async participate(id: number, sessionEmail: string, participateDto: ParticipateSocialGatheringRequest) {
+  async participate(id: number, sessionEmail: string, participateRequest: ParticipateSocialGatheringRequest) {
     const socialGathering = await this.socialGatheringRepository.getById(id);
 
-    const paymentResult = await this.iamportService.getPaymentResult(participateDto.imp_uid);
+    const paymentResult = await this.iamportService.getPaymentResult(participateRequest.imp_uid);
     if (paymentResult.status !== 'paid') {
       throw new BadRequestException('결제가 완료되지 않았습니다.');
     }
@@ -59,9 +64,10 @@ export class SocialGatheringsService {
 
     const sessionUser = await this.userRepository.getByEmail(sessionEmail);
 
-    await this.participantRepository.create(id, sessionUser.uuid);
-
-    return { message: '성공적으로 참가했습니다.' };
+    return await this.prisma.$transaction(async (tx) => {
+      await this.participantRepository.create(tx, id, sessionUser.uuid);
+      return { message: '성공적으로 참가했습니다.' };
+    })
   }
 
   async getParticipants(socialGatheringId: number) {

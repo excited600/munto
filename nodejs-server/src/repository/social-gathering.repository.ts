@@ -7,8 +7,8 @@ import { Prisma, SocialGathering } from "@prisma/client";
 export class SocialGatheringRepository {
     constructor(private prisma: PrismaService) { }
 
-    async create(hostUuid: string, dto: CreateSocialGatheringRequest, thumbnailUrl: string, createdByUuid: string, updatedByUuid: string): Promise<SocialGathering> {
-        return await this.prisma.socialGathering.create({
+    async create(tx: Prisma.TransactionClient, hostUuid: string, dto: CreateSocialGatheringRequest, thumbnailUrl: string, createdByUuid: string, updatedByUuid: string): Promise<SocialGathering> {
+        return await tx.socialGathering.create({
             data: {
                 host_uuid: hostUuid,
                 name: dto.name,

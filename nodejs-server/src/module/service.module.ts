@@ -9,6 +9,7 @@ import { JwtStrategy } from "@/service/jwt.strategy";
 import { S3Service } from "@/service/s3.service";
 import { PassportModule } from "@nestjs/passport";
 import { JwtModule } from "@nestjs/jwt";
+import { PrismaService } from "@/repository/prisma.service";
 
 
 @Module({
@@ -18,7 +19,7 @@ import { JwtModule } from "@nestjs/jwt";
           signOptions: { expiresIn: process.env.JWT_EXPIRES_IN },
         }),],
     controllers: [SocialGatheringsController, UsersController],
-    providers: [SocialGatheringsService, IamportService, UserService, S3Service, JwtStrategy],
-    exports: [SocialGatheringsService, UserService]
+    providers: [PrismaService, SocialGatheringsService, IamportService, UserService, S3Service, JwtStrategy],
+    exports: [PrismaService, SocialGatheringsService, UserService]
   })
   export class ServiceModule {}

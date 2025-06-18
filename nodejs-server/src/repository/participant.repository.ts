@@ -1,14 +1,14 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "./prisma.service";
-import { Participant } from '@prisma/client';
+import { Participant, Prisma } from '@prisma/client';
 import { ParticipantResponse } from "@/model/participant.response";
 
 @Injectable()
 export class ParticipantRepository {
   constructor(private prisma: PrismaService) {}
 
-  async create(socialGatheringId: number, userUuid: string): Promise<Participant> {
-    return await this.prisma.participant.create({
+  async create(tx: Prisma.TransactionClient, socialGatheringId: number, userUuid: string): Promise<Participant> {
+    return await tx.participant.create({
       data: { social_gathering_id: socialGatheringId, user_uuid: userUuid },
     });
   }
