@@ -1,6 +1,8 @@
 import React from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store';
 
 const NavContainer = styled.nav`
   width: 100%;
@@ -78,6 +80,19 @@ const LoginButton = styled.button`
 
 const NavigationBar: React.FC = () => {
   const navigate = useNavigate();
+  const accessToken = useSelector((state: RootState) => state.auth.accessToken);
+
+  const handleOpenClick = () => {
+    if (accessToken) {
+      // 로그인된 경우 소셜 모임 생성 페이지로 이동
+      navigate('/create-social-gathering');
+    } else {
+      // 로그인되지 않은 경우 알림 후 로그인 페이지로 이동
+      alert('로그인 하세요');
+      navigate('/login');
+    }
+  };
+
   return (
     <NavContainer>
       <LeftSection>
@@ -87,7 +102,7 @@ const NavigationBar: React.FC = () => {
         </NavMenu>
       </LeftSection>
       <RightSection>
-        <OpenButton onClick={() => navigate('/create-social-gathering')}>+ 열기</OpenButton>
+        <OpenButton onClick={handleOpenClick}>+ 열기</OpenButton>
         <LoginButton onClick={() => navigate('/login')}>로그인</LoginButton>
       </RightSection>
     </NavContainer>
