@@ -11,8 +11,9 @@ export const API_ENDPOINTS = {
   },
   SOCIAL_GATHERINGS: {
     CREATE: `${API_HOST}/api/social-gatherings`,
-    LATEST: `${API_HOST}/api/social-gatherings/latest`,
+    LATEST: `${API_HOST}/api/social-gatherings/recommendations`,
     SCROLL: `${API_HOST}/api/social-gatherings/scroll`,
+    GET_BY_ID: (id: string | number) => `${API_HOST}/api/social-gatherings/${id}`,
     PARTICIPANTS: (id: string | number) => `${API_HOST}/api/social-gatherings/${id}/participants`,
     PARTICIPATE: (id: string | number) => `${API_HOST}/api/social-gatherings/${id}/participate`,
   },

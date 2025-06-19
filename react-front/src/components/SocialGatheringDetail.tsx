@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import NavigationBar from './NavigationBar';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import { API_ENDPOINTS } from '../api/config';
+import dayjs from 'dayjs';
 
 const DetailWrapper = styled.div`
   max-width: 1200px;
@@ -154,9 +155,27 @@ const GrayCircle = styled.div`
   background: #e0e0e0;
 `;
 
+// API 응답 형식에 맞는 인터페이스 정의
+interface SocialGatheringData {
+  id: number;
+  host_uuid: string;
+  name: string;
+  location: string;
+  thumbnail_url: string;
+  price: number;
+  view_count: number;
+  start_datetime: string;
+  end_datetime: string;
+  created_at: string;
+  created_by: string;
+  updated_at: string;
+  updated_by: string;
+}
+
 const SocialGatheringDetail: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const params = useParams();
   const card = location.state as {
     imageUrl: string;
     category: string;
@@ -166,10 +185,46 @@ const SocialGatheringDetail: React.FC = () => {
     price: number;
   };
 
+  // URL 파라미터에서 id 가져오기
+  const gatheringId = params.id ? parseInt(params.id) : card?.id;
+
   const [isLoaded, setIsLoaded] = useState(false);
   const [members, setMembers] = useState<any[]>([]);
+  const [gatheringData, setGatheringData] = useState<SocialGatheringData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
   const loginedEmail = useSelector((state: RootState) => state.auth.email);
+
+  // API에서 소셜 모임 데이터 가져오기
+  useEffect(() => {
+    if (!gatheringId) {
+      setError('유효하지 않은 모임 ID입니다.');
+      setLoading(false);
+      return;
+    }
+
+    const fetchGatheringData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(API_ENDPOINTS.SOCIAL_GATHERINGS.GET_BY_ID(gatheringId));
+        
+        if (!response.ok) {
+          throw new Error('모임 정보를 가져올 수 없습니다.');
+        }
+        
+        const data: SocialGatheringData = await response.json();
+        setGatheringData(data);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGatheringData();
+  }, [gatheringId]);
 
   useEffect(() => {
     // jQuery 먼저 로드
@@ -197,12 +252,25 @@ const SocialGatheringDetail: React.FC = () => {
     };
   }, []);
 
+  // 참가자 목록 가져오기 함수
+  const fetchParticipants = async () => {
+    if (!gatheringData) return;
+    
+    try {
+      const response = await fetch(API_ENDPOINTS.SOCIAL_GATHERINGS.PARTICIPANTS(gatheringData.id));
+      const data = await response.json();
+      setMembers(data);
+    } catch (err) {
+      console.error('참가자 정보를 가져오는데 실패했습니다:', err);
+    }
+  };
+
   useEffect(() => {
     // 참가자 정보 fetch
-    fetch(API_ENDPOINTS.SOCIAL_GATHERINGS.PARTICIPANTS(card.id))
-      .then(res => res.json())
-      .then(data => setMembers(data));
-  }, [card.id]);
+    if (gatheringData) {
+      fetchParticipants();
+    }
+  }, [gatheringData]);
 
   const requestPay = () => {
     if (!accessToken) {
@@ -210,6 +278,12 @@ const SocialGatheringDetail: React.FC = () => {
       navigate('/login');
       return;
     }
+
+    if (!gatheringData) {
+      alert('모임 정보를 불러올 수 없습니다.');
+      return;
+    }
+
     // @ts-ignore
     const { IMP } = window;
     if (!IMP) {
@@ -221,16 +295,16 @@ const SocialGatheringDetail: React.FC = () => {
       {
         pg: 'kakaopay.TC0ONETIME',
         pay_method: 'card',
-        merchant_uid: String(card.id) + '-' + loginedEmail,
-        name: card.title,
-        amount: card.price,
+        merchant_uid: String(gatheringData.id) + '-' + loginedEmail,
+        name: gatheringData.name,
+        amount: gatheringData.price,
         buyer_email: loginedEmail,
       },
       async function (rsp: any) {
         if (rsp.success) {
           // 결제 성공
           try {
-            const response = await fetch(API_ENDPOINTS.SOCIAL_GATHERINGS.PARTICIPATE(card.id), {
+            const response = await fetch(API_ENDPOINTS.SOCIAL_GATHERINGS.PARTICIPATE(gatheringData.id), {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -241,17 +315,24 @@ const SocialGatheringDetail: React.FC = () => {
     
             if (response.ok) {
               alert('참가 신청이 완료되었습니다!');
-              // 필요하다면 참가자 목록 새로고침 등 추가
+              // 참가자 목록 새로고침
+              fetchParticipants();
             } else {
               const error = await response.json();
               alert('참가 신청 실패: ' + (error.message || '알 수 없는 오류'));
+              // 실패해도 참가자 목록 새로고침 (다른 사용자가 참가했을 수 있음)
+              fetchParticipants();
             }
           } catch (err) {
             alert('네트워크 오류가 발생했습니다.');
+            // 에러가 발생해도 참가자 목록 새로고침
+            fetchParticipants();
           }
         } else {
           // 결제 실패
           alert('결제에 실패하였습니다: ' + rsp.error_msg);
+          // 결제 실패해도 참가자 목록 새로고침
+          fetchParticipants();
         }
       }
     );
@@ -260,46 +341,70 @@ const SocialGatheringDetail: React.FC = () => {
   return (
     <div>
       <NavigationBar />
-      <DetailWrapper>
-        <ImageSection>
-          <MainImage src={card.imageUrl} alt={card.title} />
-        </ImageSection>
-        <InfoSection>
-          <Title>{card.title}</Title>
-          <SubInfo>{card.category}</SubInfo>
-          <DateInfo>{card.date}</DateInfo>
-          <PriceLabel>참가비</PriceLabel>
-          <Price>{card.price.toLocaleString()}원</Price>
-          <PayButton onClick={requestPay} disabled={!isLoaded}>
-            {isLoaded ? '카카오페이 테스트 결제' : '결제 모듈 로딩 중...'}
-          </PayButton>
-        </InfoSection>
-      </DetailWrapper>
-      <MemberSection>
-        <MemberTitle>멤버소개</MemberTitle>
-        <MemberSubTitle>함께하는 멤버들을 알려드릴게요</MemberSubTitle>
-        {members.length === 0 ? (
-          <div style={{ color: '#888', fontSize: '18px', margin: '32px 0' }}>현재 멤버가 모이지 않았어요</div>
-        ) : (
-          <MemberList>
-            {members.map((member, idx) => (
-              <MemberCard key={member.user_uuid || idx}>
-                <ProfileRow>
-                  {member.profile_picture_url ? (
-                    <ProfileImg src={member.profile_picture_url} alt={member.name} />
-                  ) : (
-                    <GrayCircle />
-                  )}
-                  <MemberName>{member.name}</MemberName>
-                </ProfileRow>
-                {member.introduction && (
-                  <MemberComment>{member.introduction}</MemberComment>
-                )}
-              </MemberCard>
-            ))}
-          </MemberList>
-        )}
-      </MemberSection>
+      {loading && (
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '100px 20px', 
+          fontSize: '18px', 
+          color: '#666' 
+        }}>
+          모임 정보를 불러오는 중...
+        </div>
+      )}
+      {error && (
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '100px 20px', 
+          fontSize: '18px', 
+          color: '#ff3b30' 
+        }}>
+          {error}
+        </div>
+      )}
+      {!loading && !error && gatheringData && (
+        <>
+          <DetailWrapper>
+            <ImageSection>
+              <MainImage src={gatheringData.thumbnail_url} alt={gatheringData.name} />
+            </ImageSection>
+            <InfoSection>
+              <Title>{gatheringData.name}</Title>
+              <SubInfo>{gatheringData.location}</SubInfo>
+              <DateInfo>{dayjs(gatheringData.start_datetime).format('YYYY-MM-DD HH:mm')}</DateInfo>
+              <PriceLabel>참가비</PriceLabel>
+              <Price>{gatheringData.price.toLocaleString()}원</Price>
+              <PayButton onClick={requestPay} disabled={!isLoaded}>
+                {isLoaded ? '카카오페이 테스트 결제' : '결제 모듈 로딩 중...'}
+              </PayButton>
+            </InfoSection>
+          </DetailWrapper>
+          <MemberSection>
+            <MemberTitle>멤버소개</MemberTitle>
+            <MemberSubTitle>함께하는 멤버들을 알려드릴게요</MemberSubTitle>
+            {members.length === 0 ? (
+              <div style={{ color: '#888', fontSize: '18px', margin: '32px 0' }}>현재 멤버가 모이지 않았어요</div>
+            ) : (
+              <MemberList>
+                {members.map((member, idx) => (
+                  <MemberCard key={member.user_uuid || idx}>
+                    <ProfileRow>
+                      {member.profile_picture_url ? (
+                        <ProfileImg src={member.profile_picture_url} alt={member.name} />
+                      ) : (
+                        <GrayCircle />
+                      )}
+                      <MemberName>{member.name}</MemberName>
+                    </ProfileRow>
+                    {member.introduction && (
+                      <MemberComment>{member.introduction}</MemberComment>
+                    )}
+                  </MemberCard>
+                ))}
+              </MemberList>
+            )}
+          </MemberSection>
+        </>
+      )}
     </div>
   );
 };

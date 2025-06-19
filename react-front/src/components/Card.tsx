@@ -68,7 +68,7 @@ const Card: React.FC<CardProps> = (props) => {
   const { id, imageUrl, category, title, date, price } = props;
 
   const handleClick = () => {
-    navigate('/social-gathering-detail', { state: { ...props } });
+    navigate(`/social-gathering-detail/${id}`, { state: { ...props } });
   };
 
   return (
