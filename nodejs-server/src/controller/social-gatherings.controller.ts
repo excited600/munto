@@ -22,10 +22,10 @@ export class SocialGatheringsController {
     return this.socialGatheringsService.create(sessionEmail, createSocialGatheringDto, thumbnail);
   }
 
-  @Get('latest')
+  @Get('recommendations')
   findLatest(@Query('count') count?: string) {
     const countNumber = count ? parseInt(count, 10) : undefined;
-    return this.socialGatheringsService.findLatest(countNumber);
+    return this.socialGatheringsService.findRecommendations(countNumber);
   }
 
   @Get('scroll')

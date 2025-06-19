@@ -22,6 +22,7 @@ CREATE TABLE "SocialGathering" (
   thumbnail_url TEXT NOT NULL,
   location TEXT NOT NULL,
   price INTEGER NOT NULL,
+  view_count INTEGER NOT NULL DEFAULT 0,
   start_datetime TIMESTAMP(3) NOT NULL,
   end_datetime TIMESTAMP(3) NOT NULL,
   created_at TIMESTAMP(3) NOT NULL DEFAULT now(),

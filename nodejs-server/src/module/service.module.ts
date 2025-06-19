@@ -11,6 +11,7 @@ import { PassportModule } from "@nestjs/passport";
 import { JwtModule } from "@nestjs/jwt";
 import { PrismaService } from "@/repository/prisma.service";
 import { RedisCacheProvider } from "@/service/redis-cache.provider";
+import { RedisClientProvider } from "@/service/redis-client.provider";
 
 
 @Module({
@@ -20,7 +21,8 @@ import { RedisCacheProvider } from "@/service/redis-cache.provider";
           signOptions: { expiresIn: process.env.JWT_EXPIRES_IN },
         }),],
     controllers: [SocialGatheringsController, UsersController],
-    providers: [PrismaService, SocialGatheringsService, IamportService, UserService, S3Service, JwtStrategy, RedisCacheProvider],
+    providers: [PrismaService, SocialGatheringsService, IamportService, UserService, S3Service, 
+      JwtStrategy, RedisCacheProvider, RedisClientProvider],
     exports: [PrismaService, SocialGatheringsService, UserService]
   })
   export class ServiceModule {}

@@ -21,6 +21,7 @@ model SocialGathering {
   location       String
   thumbnail_url  String
   price          Int 
+  view_count     Int      @default(0)
   start_datetime DateTime
   end_datetime   DateTime
   created_at     DateTime @default(now())

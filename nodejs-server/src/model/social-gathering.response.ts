@@ -8,6 +8,7 @@ export class SocialGatheringResponse {
   location: string;
   thumbnail_url: string;
   price: number;
+  view_count: number;
   start_datetime: string;
   end_datetime: string;
   created_at: string;

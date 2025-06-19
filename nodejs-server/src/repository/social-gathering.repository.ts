@@ -25,6 +25,15 @@ export class SocialGatheringRepository {
         });
     }
 
+    async increaseViewCount(id: number, count: number) {
+        return await this.prisma.socialGathering.update({
+            where: { id },
+            data: {
+                view_count: { increment: count }
+            }
+        });
+    }
+
     async getById(id: number): Promise<SocialGathering> {
         const socialGathering =await this.prisma.socialGathering.findUnique({
             where: { id }
@@ -37,10 +46,10 @@ export class SocialGatheringRepository {
         return socialGathering;
     }
 
-    async findLatestSocialGatherings(count: number): Promise<SocialGathering[]> {
+    async findGatheringsOrderByViewCountWithLimit(count: number): Promise<SocialGathering[]> {
         return await this.prisma.$queryRaw<SocialGathering[]>`
             SELECT * FROM "SocialGathering"
-            ORDER BY "start_datetime" DESC
+            ORDER BY "view_count" DESC
             LIMIT ${count}
         `;
     }

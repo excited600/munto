@@ -11,6 +11,8 @@ import { PrismaService } from '@/repository/prisma.service';
 import { Inject } from '@nestjs/common';
 import { SocialGathering } from '@prisma/client';
 import { Cache } from 'cache-manager';
+import Redis from 'ioredis';
+import { Cron } from '@nestjs/schedule';
 
 
 
@@ -24,6 +26,7 @@ export class SocialGatheringsService {
     private prisma: PrismaService,
     private s3Service: S3Service,
     @Inject('REDIS_CACHE') private readonly redisCache: Cache,
+    @Inject('REDIS_CLIENT') private readonly redisClient: Redis
   ) { }
 
   async create(sessionEmail: string, createSocialGatheringDto: CreateSocialGatheringRequest, thumbnail: Express.Multer.File) {
@@ -34,15 +37,16 @@ export class SocialGatheringsService {
       await this.participantRepository.create(tx, socialGathering.id, sessionUser.uuid);
       return SocialGatheringResponse.from(socialGathering)
     });
-    
+
   }
 
   async getById(id: number) {
     const socialGathering = await this.socialGatheringRepository.getById(id)
+    await this.redisClient.incr(`view-count:social-gathering:${id}`)
     return SocialGatheringResponse.from(socialGathering)
   }
 
-  async findLatest(count?: number) {
+  async findRecommendations(count?: number) {
     let recommendedGatherings = await this.redisCache.get<SocialGathering[]>('recommended-social-gatherings');
     if (recommendedGatherings) {
       return recommendedGatherings.map(gathering => SocialGatheringResponse.from(gathering));
@@ -52,7 +56,7 @@ export class SocialGatheringsService {
       count = DEFAULT_COUNT;
     }
 
-    recommendedGatherings = await this.socialGatheringRepository.findLatestSocialGatherings(count);
+    recommendedGatherings = await this.socialGatheringRepository.findGatheringsOrderByViewCountWithLimit(count);
 
     await this.redisCache.set('recommended-social-gatherings', recommendedGatherings);
     return recommendedGatherings.map(gathering => SocialGatheringResponse.from(gathering));
@@ -84,6 +88,22 @@ export class SocialGatheringsService {
 
   async getParticipants(socialGatheringId: number) {
     return this.participantRepository.findParticipantsBySocialGatheringId(socialGatheringId)
+  }
+
+  @Cron('*/1 * * * *')
+  async syncViewCountsToDatabase() {
+    const keys = await this.redisClient.keys('view-count:social-gathering:*');
+    for (const key of keys) {
+      const id = parseInt(key.split(':')[2], 10);
+      const count = parseInt(await this.redisClient.get(key) || '0', 10);
+
+      if (isNaN(id) || isNaN(count) || count <= 0) {
+        await this.redisClient.del(key);
+        continue;
+      }
+      await this.socialGatheringRepository.increaseViewCount(id, count)
+      await this.redisClient.del(key);
+    }
   }
 }
 
