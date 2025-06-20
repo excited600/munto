@@ -10,7 +10,6 @@ const NavContainer = styled.nav`
   max-width: 1200px;
   height: 107px;
   margin: 0 auto;
-  background-color: #fff;
   display: flex;
   align-items: center;
   padding: 0 20px;

@@ -10,7 +10,7 @@ import CreateSocialGathering from './components/CreateSocialGathering';
 
 const AppContainer = styled.div`
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: #fff;
 `;
 
 const App: React.FC = () => {
