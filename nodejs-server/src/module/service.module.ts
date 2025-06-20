@@ -12,6 +12,7 @@ import { JwtModule } from "@nestjs/jwt";
 import { PrismaService } from "@/repository/prisma.service";
 import { RedisCacheProvider } from "@/service/redis-cache.provider";
 import { RedisClientProvider } from "@/service/redis-client.provider";
+import { RedlockProvider } from "@/service/redlock.provider";
 
 
 @Module({
@@ -22,7 +23,7 @@ import { RedisClientProvider } from "@/service/redis-client.provider";
         }),],
     controllers: [SocialGatheringsController, UsersController],
     providers: [PrismaService, SocialGatheringsService, IamportService, UserService, S3Service, 
-      JwtStrategy, RedisCacheProvider, RedisClientProvider],
+      JwtStrategy, RedisCacheProvider, RedisClientProvider, RedlockProvider],
     exports: [PrismaService, SocialGatheringsService, UserService]
   })
   export class ServiceModule {}

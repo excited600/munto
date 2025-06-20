@@ -14,6 +14,7 @@ import { Cache } from 'cache-manager';
 import Redis from 'ioredis';
 import { Cron } from '@nestjs/schedule';
 import { SocialGatheringDetailResponse } from '@/model/social-gathering-detail.response';
+import Redlock, { Lock } from 'redlock';
 
 
 
@@ -27,7 +28,8 @@ export class SocialGatheringsService {
     private prisma: PrismaService,
     private s3Service: S3Service,
     @Inject('REDIS_CACHE') private readonly redisCache: Cache,
-    @Inject('REDIS_CLIENT') private readonly redisClient: Redis
+    @Inject('REDIS_CLIENT') private readonly redisClient: Redis,
+    @Inject('REDLOCK') private readonly redlock: Redlock,
   ) { }
 
   async create(sessionEmail: string, createSocialGatheringDto: CreateSocialGatheringRequest, thumbnail: Express.Multer.File) {
@@ -108,17 +110,34 @@ export class SocialGatheringsService {
 
   @Cron('*/1 * * * *')
   async syncViewCountsToDatabase() {
-    const keys = await this.redisClient.keys('view-count:social-gathering:*');
-    for (const key of keys) {
-      const id = parseInt(key.split(':')[2], 10);
-      const count = parseInt(await this.redisClient.get(key) || '0', 10);
+    let lock: Lock;
 
-      if (isNaN(id) || isNaN(count) || count <= 0) {
+    try {
+      lock = await this.redlock.acquire(['lock:view-count'], 5000)
+    } catch (error) {
+      console.log('Failed to acquire lock:', error);
+      return;
+    }
+
+    try {
+      const keys = await this.redisClient.keys('view-count:social-gathering:*');
+      for (const key of keys) {
+        const id = parseInt(key.split(':')[2], 10);
+        const count = parseInt(await this.redisClient.get(key) || '0', 10);
+
+        if (isNaN(id) || isNaN(count) || count <= 0) {
+          await this.redisClient.del(key);
+          continue;
+        }
+        await this.socialGatheringRepository.increaseViewCount(id, count)
         await this.redisClient.del(key);
-        continue;
       }
-      await this.socialGatheringRepository.increaseViewCount(id, count)
-      await this.redisClient.del(key);
+    } finally {
+      try {
+        await lock.release();
+      } catch (error) {
+        console.log('Failed to release lock:', error);
+      }
     }
   }
 }
