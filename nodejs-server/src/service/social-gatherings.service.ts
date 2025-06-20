@@ -108,7 +108,7 @@ export class SocialGatheringsService {
     return this.participantRepository.findParticipantsBySocialGatheringId(socialGatheringId)
   }
 
-  @Cron('*/1 * * * *')
+  @Cron('0 * * * *')
   async syncViewCountsToDatabase() {
     let lock: Lock;
 
