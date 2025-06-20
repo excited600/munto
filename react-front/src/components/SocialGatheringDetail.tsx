@@ -84,6 +84,20 @@ const PayButton = styled.button`
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 `;
 
+const HostButton = styled.div`
+  width: 100%;
+  padding: 16px 0;
+  background: #ff3b30;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  margin-top: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  text-align: center;
+`;
+
 // 멤버 소개 섹션 스타일
 const MemberSection = styled.div`
   max-width: 1200px;
@@ -170,6 +184,7 @@ interface SocialGatheringData {
   created_by: string;
   updated_at: string;
   updated_by: string;
+  requestorIsHost: boolean;
 }
 
 const SocialGatheringDetail: React.FC = () => {
@@ -207,7 +222,11 @@ const SocialGatheringDetail: React.FC = () => {
     const fetchGatheringData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(API_ENDPOINTS.SOCIAL_GATHERINGS.GET_BY_ID(gatheringId));
+        const response = await fetch(API_ENDPOINTS.SOCIAL_GATHERINGS.GET_BY_ID(gatheringId), {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        });
         
         if (!response.ok) {
           throw new Error('모임 정보를 가져올 수 없습니다.');
@@ -224,7 +243,7 @@ const SocialGatheringDetail: React.FC = () => {
     };
 
     fetchGatheringData();
-  }, [gatheringId]);
+  }, [gatheringId, accessToken]);
 
   useEffect(() => {
     // jQuery 먼저 로드
@@ -257,7 +276,11 @@ const SocialGatheringDetail: React.FC = () => {
     if (!gatheringData) return;
     
     try {
-      const response = await fetch(API_ENDPOINTS.SOCIAL_GATHERINGS.PARTICIPANTS(gatheringData.id));
+      const response = await fetch(API_ENDPOINTS.SOCIAL_GATHERINGS.PARTICIPANTS(gatheringData.id), {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
       const data = await response.json();
       setMembers(data);
     } catch (err) {
@@ -373,9 +396,13 @@ const SocialGatheringDetail: React.FC = () => {
               <DateInfo>{dayjs(gatheringData.start_datetime).format('YYYY-MM-DD HH:mm')}</DateInfo>
               <PriceLabel>참가비</PriceLabel>
               <Price>{gatheringData.price.toLocaleString()}원</Price>
-              <PayButton onClick={requestPay} disabled={!isLoaded}>
-                {isLoaded ? '카카오페이 테스트 결제' : '결제 모듈 로딩 중...'}
-              </PayButton>
+              {gatheringData.requestorIsHost ? (
+                <HostButton>호스트입니다</HostButton>
+              ) : (
+                <PayButton onClick={requestPay} disabled={!isLoaded}>
+                  {isLoaded ? '카카오페이 테스트 결제' : '결제 모듈 로딩 중...'}
+                </PayButton>
+              )}
             </InfoSection>
           </DetailWrapper>
           <MemberSection>

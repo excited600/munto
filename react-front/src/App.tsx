@@ -2,7 +2,6 @@ import React from 'react';
 import styled from 'styled-components';
 import Home from './components/Home';
 import SocialGatherings from './components/SocialGatherings';
-import Payment from './components/Payment';
 import SocialGatheringDetail from './components/SocialGatheringDetail';
 import Login from './components/Login';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
@@ -21,7 +20,6 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/social-gatherings" element={<SocialGatherings />} />
-          <Route path="/tmp" element={<Payment />} />
           <Route path="/social-gathering-detail/:id" element={<SocialGatheringDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
