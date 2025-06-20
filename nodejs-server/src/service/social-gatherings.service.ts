@@ -32,6 +32,10 @@ export class SocialGatheringsService {
 
   async create(sessionEmail: string, createSocialGatheringDto: CreateSocialGatheringRequest, thumbnail: Express.Multer.File) {
     const sessionUser = await this.userRepository.getByEmail(sessionEmail);
+    if (!sessionUser.is_host) {
+      throw new BadRequestException('호스트가 아닙니다.');
+    }
+
     const thumnailUrl = await this.s3Service.uploadImageToS3(thumbnail.buffer, thumbnail.mimetype, 'social-gatherings');
     return await this.prisma.$transaction(async (tx) => {
       const socialGathering = await this.socialGatheringRepository.create(tx, sessionUser.uuid, createSocialGatheringDto, thumnailUrl, sessionUser.uuid, sessionUser.uuid);
