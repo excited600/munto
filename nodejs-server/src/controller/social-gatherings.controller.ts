@@ -5,7 +5,8 @@ import { ParticipantResponse } from '@/model/participant.response';
 import { ParticipateSocialGatheringRequest } from '@/model/participate-social-gathering.request';
 import { CreateSocialGatheringRequest } from '@/model/create-social-gathering.request';
 import { SocialGatheringsService } from '@/service/social-gatherings.service';
-import { JwtAuthGuard } from '@/service/jwt-auth.guard';
+import { JwtAuthGuard } from '@/controller/jwt-auth.guard';
+import { OptionalJwtGuard } from './optional-jwt.guard';
 
 @Controller('social-gatherings')
 export class SocialGatheringsController {
@@ -39,9 +40,13 @@ export class SocialGatheringsController {
     return this.socialGatheringsService.getParticipants(id);
   }
 
+  @UseGuards(OptionalJwtGuard)
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.socialGatheringsService.getById(id);
+  findById(
+    @Param('id', ParseIntPipe) id: number,
+    @User('email') sessionEmail?: string) {
+      console.log(sessionEmail)
+    return this.socialGatheringsService.getById(id, sessionEmail);
   }
 
   @UseGuards(JwtAuthGuard)

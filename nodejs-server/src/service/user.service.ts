@@ -45,16 +45,8 @@ export class UserService {
     });
   }
 
-  async findOne(uuid: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { uuid },
-    });
-
-    if (!user) {
-      throw new NotFoundException(`User with UUID ${uuid} not found`);
-    }
-
-    return user;
+  async findByEmail(email: string) {
+    return await this.userRepository.getByEmail(email)
   }
 
   async login(loginDto: LoginRequest) {

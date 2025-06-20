@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
+import { API_ENDPOINTS } from '../api/config';
 
 const NavContainer = styled.nav`
   width: 100%;
@@ -78,18 +79,46 @@ const LoginButton = styled.button`
   }
 `;
 
+interface userIsHost {
+  is_host: boolean;
+}
+
 const NavigationBar: React.FC = () => {
   const navigate = useNavigate();
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
 
-  const handleOpenClick = () => {
-    if (accessToken) {
-      // 로그인된 경우 소셜 모임 생성 페이지로 이동
-      navigate('/create-social-gathering');
-    } else {
+  const handleOpenClick = async () => {
+    if (!accessToken) {
       // 로그인되지 않은 경우 알림 후 로그인 페이지로 이동
       alert('로그인 하세요');
       navigate('/login');
+      return;
+    }
+
+    // 로그인된 경우 호스트 권한 확인
+    try {
+      const response = await fetch(API_ENDPOINTS.USERS.SELF, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('사용자 정보를 가져올 수 없습니다.');
+      }
+
+      const userIsHost: userIsHost = await response.json();
+      
+      if (userIsHost.is_host) {
+        // 호스트인 경우 소셜 모임 생성 페이지로 이동
+        navigate('/create-social-gathering');
+      } else {
+        // 호스트가 아닌 경우 알림
+        alert('호스트가 아닙니다.');
+      }
+    } catch (error) {
+      console.error('호스트 권한 확인 중 오류 발생:', error);
+      alert('권한 확인 중 오류가 발생했습니다.');
     }
   };
 

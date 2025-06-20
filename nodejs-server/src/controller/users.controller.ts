@@ -1,9 +1,10 @@
-import { JwtAuthGuard } from '@/service/jwt-auth.guard';
+import { JwtAuthGuard } from '@/controller/jwt-auth.guard';
 import { CreateUserRequest } from '@/model/create-user.request';
 import { UserService } from '@/service/user.service';
 import { Controller, Get, Post, Body, Param, UseInterceptors, UploadedFile, UseGuards } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { LoginRequest } from '@/model/login.request';
+import { User } from './user-decorator';
 
 @Controller('users')
 export class UsersController {
@@ -21,9 +22,9 @@ export class UsersController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get(':uuid')
-  findOne(@Param('uuid') uuid: string) {
-    return this.userService.findOne(uuid);
+  @Get('self')
+  findOne(@User('email') sessionEmail: string,) {
+    return this.userService.findByEmail(sessionEmail);
   }
 
   @Post('signin')

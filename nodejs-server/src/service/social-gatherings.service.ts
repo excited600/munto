@@ -13,6 +13,7 @@ import { SocialGathering } from '@prisma/client';
 import { Cache } from 'cache-manager';
 import Redis from 'ioredis';
 import { Cron } from '@nestjs/schedule';
+import { SocialGatheringDetailResponse } from '@/model/social-gathering-detail.response';
 
 
 
@@ -40,10 +41,21 @@ export class SocialGatheringsService {
 
   }
 
-  async getById(id: number) {
+  async getById(id: number, sessionEmail?: string): Promise<SocialGatheringDetailResponse> {
     const socialGathering = await this.socialGatheringRepository.getById(id)
     await this.redisClient.incr(`view-count:social-gathering:${id}`)
-    return SocialGatheringResponse.from(socialGathering)
+    const response = SocialGatheringResponse.from(socialGathering)
+
+    let requestorIsHost = false;
+    if (sessionEmail) {
+      const sessionUser = await this.userRepository.getByEmail(sessionEmail);
+      requestorIsHost = sessionUser.uuid === socialGathering.host_uuid;
+    }
+
+    return {
+      ...response,
+      requestorIsHost
+    }
   }
 
   async findRecommendations(count?: number) {

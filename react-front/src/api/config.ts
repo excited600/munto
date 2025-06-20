@@ -8,6 +8,7 @@ export const API_ENDPOINTS = {
   },
   USERS: {
     SIGNUP: `${API_HOST}/api/users/signup`,
+    SELF: `${API_HOST}/api/users/self`,
   },
   SOCIAL_GATHERINGS: {
     CREATE: `${API_HOST}/api/social-gatherings`,
